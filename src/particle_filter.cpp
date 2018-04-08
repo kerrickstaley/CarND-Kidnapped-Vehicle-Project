@@ -64,6 +64,30 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         const std::vector<LandmarkObs> &observations, const Map &map_landmarks) {
 
+    // filter down landmark list to reduce time spent in inner loop
+    double min_x = numeric_limits<double>::infinity(),
+           max_x = -numeric_limits<double>::infinity(),
+           min_y = numeric_limits<double>::infinity(),
+           max_y = -numeric_limits<double>::infinity();
+
+    for (auto& part : particles) {
+        min_x = min(min_x, part.x);
+        max_x = max(max_x, part.x);
+        min_y = min(min_y, part.y);
+        max_y = max(max_y, part.y);
+    }
+
+    vector<Map::single_landmark_s> landmarks;
+    for (auto& land : map_landmarks.landmark_list) {
+        if (land.x_f < min_x - sensor_range
+                || land.x_f > max_x + sensor_range
+                || land.y_f < min_y - sensor_range
+                || land.y_f > max_y + sensor_range) {
+            continue;
+        }
+        landmarks.push_back(land);
+    }
+
     double sigma_x2 = std_landmark[0] * std_landmark[0];
     double sigma_y2 = std_landmark[0] * std_landmark[0];
 
@@ -80,17 +104,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             // find the object that minimizes the "normalized" distance squared, which I define as
             // dx^2 / sigma_x^2 + dy^2 / sigma_y^2
             double min_norm_dist_sq = numeric_limits<double>::infinity();
-            for (auto& land : map_landmarks.landmark_list) {
+            for (auto& land : landmarks) {
                 double dx = xabs - land.x_f;
-                // early out if too far
-                if (fabs(dx) > sensor_range) {
-                    continue;
-                }
                 double dy = yabs - land.y_f;
-                // early out if too far
-                if (fabs(dy) > sensor_range) {
-                    continue;
-                }
                 double norm_dist_sq = dx * dx / sigma_x2 + dy * dy / sigma_y2;
                 min_norm_dist_sq = min(min_norm_dist_sq, norm_dist_sq);
             }
