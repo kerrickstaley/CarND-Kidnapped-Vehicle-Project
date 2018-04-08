@@ -63,16 +63,37 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         const std::vector<LandmarkObs> &observations, const Map &map_landmarks) {
-    // TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
-    //   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
-    // NOTE: The observations are given in the VEHICLE'S coordinate system. Your particles are located
-    //   according to the MAP'S coordinate system. You will need to transform between the two systems.
-    //   Keep in mind that this transformation requires both rotation AND translation (but no scaling).
-    //   The following is a good resource for the theory:
-    //   https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-    //   and the following is a good resource for the actual equation to implement (look at equation
-    //   3.33
-    //   http://planning.cs.uiuc.edu/node99.html
+
+    double sigma_x2 = std_landmark[0] * std_landmark[0];
+    double sigma_y2 = std_landmark[0] * std_landmark[0];
+
+    for (auto& part : particles) {
+        // reset particle weight
+        part.weight = 1;
+
+        for (auto& obs : observations) {
+            // convert observations to absolute positions based on particle position
+            double xabs = cos(part.theta) * obs.x - sin(part.theta) * obs.y + part.x;
+            double yabs = sin(part.theta) * obs.x + cos(part.theta) * obs.y + part.y;
+
+            // find most likely object in map
+            // find the object that minimizes the "normalized" distance squared, which I define as
+            // dx^2 / sigma_x^2 + dy^2 / sigma_y^2
+            double min_norm_dist_sq = numeric_limits<double>::infinity();
+            for (auto& land : map_landmarks.landmark_list) {
+                double dx = xabs - land.x_f;
+                double dy = yabs - land.y_f;
+                double norm_dist_sq = dx * dx / sigma_x2 + dy * dy / sigma_y2;
+                min_norm_dist_sq = min(min_norm_dist_sq, norm_dist_sq);
+            }
+
+            double prob = 1 / (2 * M_PI * std_landmark[0] * std_landmark[1])
+                          * exp(-0.5 * min_norm_dist_sq);
+
+            // update particle weight
+            part.weight *= prob;
+        }
+    }
 }
 
 void ParticleFilter::resample() {
