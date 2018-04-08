@@ -88,6 +88,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         landmarks.push_back(land);
     }
 
+    #ifdef DEBUG
+    cerr << "filtered landmarks from " << map_landmarks.landmark_list.size() << " elements to " << landmarks.size()
+         << " elements" << endl;
+    cerr << "there are " << observations.size() << " observations" << endl;
+    cerr << "there are " << particles.size() << " particles" << endl;
+    cerr << "expect " << particles.size() * observations.size() * landmarks.size() << " inner loop iterations" << endl;
+    int inner_loop_iters = 0;
+    #endif
+
     double sigma_x2 = std_landmark[0] * std_landmark[0];
     double sigma_y2 = std_landmark[0] * std_landmark[0];
 
@@ -105,6 +114,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             // dx^2 / sigma_x^2 + dy^2 / sigma_y^2
             double min_norm_dist_sq = numeric_limits<double>::infinity();
             for (auto& land : landmarks) {
+                #ifdef DEBUG
+                inner_loop_iters++;
+                #endif
                 double dx = xabs - land.x_f;
                 double dy = yabs - land.y_f;
                 double norm_dist_sq = dx * dx / sigma_x2 + dy * dy / sigma_y2;
@@ -118,6 +130,10 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             part.weight *= prob;
         }
     }
+
+    #ifdef DEBUG
+    cerr << "did " << inner_loop_iters << " iterations in the inner loop of ParticleFilter::updateWeights" << endl;
+    #endif
 }
 
 void ParticleFilter::resample() {
