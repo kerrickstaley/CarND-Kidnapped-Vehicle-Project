@@ -20,7 +20,7 @@
 using namespace std;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-    num_particles = 1000;
+    num_particles = 100;
 
     default_random_engine generator;
     normal_distribution<double> x_dist(x, std[0]);
@@ -82,7 +82,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             double min_norm_dist_sq = numeric_limits<double>::infinity();
             for (auto& land : map_landmarks.landmark_list) {
                 double dx = xabs - land.x_f;
+                // early out if too far
+                if (fabs(dx) > sensor_range) {
+                    continue;
+                }
                 double dy = yabs - land.y_f;
+                // early out if too far
+                if (fabs(dy) > sensor_range) {
+                    continue;
+                }
                 double norm_dist_sq = dx * dx / sigma_x2 + dy * dy / sigma_y2;
                 min_norm_dist_sq = min(min_norm_dist_sq, norm_dist_sq);
             }
