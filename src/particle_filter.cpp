@@ -19,8 +19,10 @@
 
 using namespace std;
 
+#define NUM_PARTICLES 100
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-    num_particles = 100;
+    num_particles = NUM_PARTICLES;
 
     default_random_engine generator;
     normal_distribution<double> x_dist(x, std[0]);
@@ -149,7 +151,7 @@ void ParticleFilter::resample() {
     std::discrete_distribution<> dist(weights.begin(), weights.end());
 
     vector<Particle> new_particles;
-    for (size_t i = 0; i < particles.size(); i++) {
+    for (size_t i = 0; i < NUM_PARTICLES; i++) {
         new_particles.push_back(particles[dist(generator)]);
     }
 
